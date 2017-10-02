@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+      <!-- include Quill stylesheet -->
+      <link href="https://cdn.quilljs.com/1.0.0/quill.snow.css" rel="stylesheet">
+  </head>
+  <body>
+    <!-- Create the toolbar container -->
+    <div id="toolbar">
+      <button class="ql-bold">Bold</button>
+        <button class="ql-italic">Italic</button>
+    </div>
+
+    <!-- Create the editor container -->
+    <div id="editor">
+      <p>Hello World!</p>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Include the Quill library -->
+    <script src="https://cdn.quilljs.com/1.0.0/quill.js"></script>
+
+    <!-- Initialize Quill editor -->
+    <script>
+      var socket = io();
+      var user = Math.random();
+      socket.on('ping', function(msg){
+                        console.log(msg);
+                              });
+
+      socket.emit('chat message', 'hello man');
+      
+      var editor = new Quill('#editor', {
+          modules: { toolbar: true },
+              theme: 'snow'
+                    });
+      editor.on('text-change', function(delta, oldDelta, source){
+        if(source == 'api'){
+          console.log("an api triggered this change");
+        }else if(source == 'user'){
+          console.log("A  user action triggered this change.");
+          console.log(oldDelta);
+          console.log(delta);
+          console.log('diff');
+          console.log(oldDelta.ops);
+          console.log(delta.ops);
+          socket.emit('doc-change', {'delta':delta, 'old_delta':oldDelta, 'user':user});
+        }
+      });
+
+      socket.on('delta', function(deltas){
+          emit_user = deltas.user;
+          delta = deltas.data;
+          console.log('new delta');
+          if (emit_user != user){
+            editor.updateContents(delta);
+          }
+      });
+
+    </script>
+  </body>
+
+</html>
