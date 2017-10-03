@@ -22,32 +22,42 @@
 
     <!-- Initialize Quill editor -->
     <script>
-      var socket = io();
-      var user = Math.random();
-      socket.on('ping', function(msg){
-                        console.log(msg);
-                              });
-
-      socket.emit('chat message', 'hello man');
-      
+      // doc editor obj 
       var editor = new Quill('#editor', {
           modules: { toolbar: true },
               theme: 'snow'
                     });
+      // get connection to server
+      var socket = io();
+      var user = Math.random();
+      // disable document until synchronization
+      editor.enable(false); // wait until state update
+
       editor.on('text-change', function(delta, oldDelta, source){
         if(source == 'api'){
           console.log("an api triggered this change");
         }else if(source == 'user'){
-          console.log("A  user action triggered this change.");
-          console.log(oldDelta);
-          console.log(delta);
-          console.log('diff');
-          console.log(oldDelta.ops);
-          console.log(delta.ops);
           socket.emit('doc-change', {'delta':delta, 'old_delta':oldDelta, 'user':user});
         }
       });
 
+      socket.on('get', function(msg){
+        var delta = editor.getContents();
+        socket.emit('load-get', delta);
+      });
+      
+      socket.on('connection', function(delta){
+          if(delta != null){
+            editor.setContents(delta);
+          }
+          editor.enable();
+      });
+
+      socket.on('first-connection', function(delta){
+          console.log('first connection authorize');
+          editor.enable();
+      });
+  
       socket.on('delta', function(deltas){
           emit_user = deltas.user;
           delta = deltas.data;
